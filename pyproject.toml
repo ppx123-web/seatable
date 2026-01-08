@@ -1,0 +1,18 @@
+[project]
+name = "seatable-mcp"
+version = "0.1.0"
+description = "A Model Context Protocol server for SeaTable"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "mcp>=0.1.0",
+    "seatable-api>=2.0.0",
+    "pytest>=7.0.0"
+]
+
+[project.scripts]
+seatable-mcp = "seatable_mcp.server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

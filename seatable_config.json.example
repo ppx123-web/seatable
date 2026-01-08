@@ -1,0 +1,10 @@
+[
+  {
+    "table_name": "ProjectAlpha",
+    "api_token": "your_api_token_for_project_alpha_base"
+  },
+  {
+    "table_name": "Finance",
+    "api_token": "your_api_token_for_finance_base"
+  }
+]
