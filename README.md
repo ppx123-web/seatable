@@ -44,17 +44,17 @@ If you strictly only need one base, you can technically set `SEATABLE_API_TOKEN`
 
 You can add this MCP server to Claude Code using the `uv` command.
 
-**Using Config File:**
+**Using Config File (Recommended):**
 
 ```bash
-claude mcp add seatable -- uv run --directory /path/to/seatable-mcp seatable-mcp --config-path /path/to/seatable_config.json
+claude mcp add seatable --env SEATABLE_CONFIG_PATH=/path/to/seatable_config.json -- uv run --directory /path/to/seatable-mcp seatable-mcp
 ```
 
 ### Manual Run
 
 ```bash
 # Set SEATABLE_CONFIG_PATH
-uv run seatable-mcp --config-path ./seatable_config.json
+SEATABLE_CONFIG_PATH=./seatable_config.json uv run seatable-mcp
 ```
 
 ## Tools

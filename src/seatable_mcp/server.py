@@ -393,20 +393,7 @@ def get_server_info() -> str:
     except Exception as e:
         return f"Error getting server info: {str(e)}"
 
-import argparse
-
 def main():
-    parser = argparse.ArgumentParser(description="SeaTable MCP Server")
-    parser.add_argument("--config-path", help="Path to the seatable_config.json file")
-    
-    # Parse known args to avoid conflict if FastMCP/uvicorn consumes some, 
-    # though FastMCP usually handles execution.
-    # We use parse_known_args in case other args are passed.
-    args, unknown = parser.parse_known_args()
-    
-    if args.config_path:
-        os.environ["SEATABLE_CONFIG_PATH"] = args.config_path
-        
     mcp.run()
 
 if __name__ == "__main__":
