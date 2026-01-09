@@ -47,7 +47,12 @@ You can add this MCP server to Claude Code using the `uv` command.
 **Using Config File (Recommended):**
 
 ```bash
-claude mcp add seatable --env SEATABLE_CONFIG_PATH=/path/to/seatable_config.json -- uv run --directory /path/to/seatable-mcp seatable-mcp
+claude mcp add seatable \
+  --env SEATABLE_CONFIG_PATH=/path/to/config.json \
+  -- \
+  /opt/homebrew/bin/uvx \
+  --from git+https://github.com/ppx123-web/seatable.git \
+  seatable-mcp
 ```
 
 ### Manual Run
