@@ -14,18 +14,18 @@ The server supports two methods of authentication, allowing you to connect to on
 
 ### 1. Multi-Base Configuration (Recommended)
 
-This method allows you to access tables across different bases by mapping table names to specific API tokens.
+This method allows you to access different bases by mapping base names to specific API tokens.
 
 1.  Create a configuration file (e.g., `seatable_config.json`). You can use `seatable_config.json.example` as a template.
 2.  Format:
     ```json
     [
       {
-        "table_name": "Expenses",
+        "base_name": "Finance",
         "api_token": "token_for_finance_base"
       },
       {
-        "table_name": "Employees",
+        "base_name": "HR",
         "api_token": "token_for_hr_base"
       }
     ]
@@ -33,7 +33,7 @@ This method allows you to access tables across different bases by mapping table 
 
 ### 2. Single-Base Configuration (Fallback)
 
-If you strictly only need one base, you can technically set `SEATABLE_API_TOKEN` in the environment, but using the config file is preferred to avoid ambiguity when scaling to multiple tables.
+If you strictly only need one base, you can technically set `SEATABLE_API_TOKEN` in the environment.
 
 *   `SEATABLE_SERVER_URL`: Your SeaTable Server URL (e.g., `https://cloud.seatable.io`).
 *   `SEATABLE_CONFIG_PATH`: Path to your JSON config file.
@@ -62,11 +62,33 @@ claude mcp add seatable \
 SEATABLE_CONFIG_PATH=./seatable_config.json uv run seatable-mcp
 ```
 
-## Tools
+## Workflow & Tools
 
-*   `list_rows`: List rows from a table.
-*   `add_row`: Add a new row.
-*   `update_row`: Update a row.
-*   `delete_row`: Delete a row.
-*   `get_base_info`: Get base metadata.
-*   `run_sql`: Run SQL queries.
+The API is decoupled to separate **Configuration** from **Operation**.
+
+### 1. Get Context
+First, use these tools to understand what bases are available and get an access token.
+
+*   `get_all_bases()`: List all configured bases and their tokens.
+*   `get_api_token(base_name)`: Get the API token for a specific base.
+
+### 2. Perform Operations
+Pass the `api_token` retrieved above to these tools to perform actions.
+
+*   `list_rows(table_name, ..., api_token=...)`
+*   `add_row(table_name, row_data, api_token=...)`
+*   `update_row(table_name, row_id, row_data, api_token=...)`
+*   `delete_row(table_name, row_id, api_token=...)`
+*   `get_base_info(api_token=...)`
+*   `run_sql(query, api_token=...)`
+*   `list_columns(...)`
+*   `insert_column(...)`
+*   `delete_column(...)`
+*   `add_select_options(...)`
+*   `list_views(...)`
+*   `create_view(...)`
+*   `delete_view(...)`
+*   `create_table(...)`
+*   `rename_table(...)`
+*   `delete_table(...)`
+
