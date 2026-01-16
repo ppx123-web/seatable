@@ -3,6 +3,7 @@ import sys
 import json
 from mcp.server.fastmcp import FastMCP
 from seatable_api import Base, context
+from seatable_api.constants import ColumnTypes
 
 # Initialize FastMCP
 mcp = FastMCP("seatable")
