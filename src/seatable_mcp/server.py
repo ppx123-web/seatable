@@ -27,31 +27,33 @@ def load_config():
             return []
     return []
 
-def get_token_for_table(table_name: str) -> str:
+def get_token_for_base(base_name: str) -> str:
     """
-    Find the API token for a given table name from config.
+    Find the API token for a given base name from config.
     Fallback to SEATABLE_API_TOKEN env var if not found in config.
+    Note: In config, 'table_name' key is used currently to represent the base name.
     """
     # 1. Try to find in JSON config
     config = load_config()
     if config:
         for entry in config:
-            if entry.get('table_name') == table_name:
+            # We treat 'table_name' in config as the base identifier
+            if entry.get('table_name') == base_name:
                 return entry.get('api_token')
     
     # 2. Fallback to single environment variable
     return os.environ.get("SEATABLE_API_TOKEN")
 
-def get_base(table_name: str = None):
+def get_base(base_name: str = None):
     """
     Get a Base instance. 
-    If table_name is provided, tries to find the specific token for that table.
+    If base_name is provided, tries to find the specific token for that base.
     """
     api_token = None
-    if table_name:
-        api_token = get_token_for_table(table_name)
+    if base_name:
+        api_token = get_token_for_base(base_name)
     
-    # If no table name provided (e.g. get_server_info) or no specific token found...
+    # If no base name provided (e.g. get_server_info) or no specific token found...
     if not api_token:
         api_token = os.environ.get("SEATABLE_API_TOKEN")
 
@@ -64,7 +66,7 @@ def get_base(table_name: str = None):
 
     if not api_token:
         # If we still don't have a token, error out.
-        raise ValueError(f"No API token found for table '{table_name}' and SEATABLE_API_TOKEN is not set.")
+        raise ValueError(f"No API token found for base '{base_name}' and SEATABLE_API_TOKEN is not set.")
 
     target_server_url = os.environ.get("SEATABLE_SERVER_URL", server_url)
     
@@ -77,7 +79,7 @@ def get_base(table_name: str = None):
     return base
 
 @mcp.tool()
-def list_rows(table_name: str, view_name: str = None, limit: int = 100) -> str:
+def list_rows(table_name: str, view_name: str = None, limit: int = 100, base_name: str = None) -> str:
     """
     List rows from a SeaTable table.
     
@@ -85,9 +87,10 @@ def list_rows(table_name: str, view_name: str = None, limit: int = 100) -> str:
         table_name: The name of the table to list rows from.
         view_name: Optional name of the view to filter rows.
         limit: Maximum number of rows to return (default 100).
+        base_name: Optional name of the base (from config) to look up the API token.
     """
     try:
-        b = get_base(table_name)
+        b = get_base(base_name)
         # SeaTable API list_rows returns a list of dictionaries
         rows = b.list_rows(table_name, view_name=view_name, limit=limit)
         return str(rows)
@@ -95,23 +98,24 @@ def list_rows(table_name: str, view_name: str = None, limit: int = 100) -> str:
         return f"Error listing rows: {str(e)}"
 
 @mcp.tool()
-def add_row(table_name: str, row_data: dict) -> str:
+def add_row(table_name: str, row_data: dict, base_name: str = None) -> str:
     """
     Add a new row to a SeaTable table.
     
     Args:
         table_name: The name of the table.
         row_data: A dictionary containing the row data.
+        base_name: Optional name of the base (from config) to look up the API token.
     """
     try:
-        b = get_base(table_name)
+        b = get_base(base_name)
         row = b.append_row(table_name, row_data)
         return f"Row added successfully: {row}"
     except Exception as e:
         return f"Error adding row: {str(e)}"
 
 @mcp.tool()
-def update_row(table_name: str, row_id: str, row_data: dict) -> str:
+def update_row(table_name: str, row_id: str, row_data: dict, base_name: str = None) -> str:
     """
     Update an existing row in a SeaTable table.
     
@@ -119,72 +123,75 @@ def update_row(table_name: str, row_id: str, row_data: dict) -> str:
         table_name: The name of the table.
         row_id: The ID of the row to update.
         row_data: A dictionary containing the updated data.
+        base_name: Optional name of the base (from config) to look up the API token.
     """
     try:
-        b = get_base(table_name)
+        b = get_base(base_name)
         b.update_row(table_name, row_id, row_data)
         return f"Row {row_id} updated successfully."
     except Exception as e:
         return f"Error updating row: {str(e)}"
 
 @mcp.tool()
-def delete_row(table_name: str, row_id: str) -> str:
+def delete_row(table_name: str, row_id: str, base_name: str = None) -> str:
     """
     Delete a row from a SeaTable table.
     
     Args:
         table_name: The name of the table.
         row_id: The ID of the row to delete.
+        base_name: Optional name of the base (from config) to look up the API token.
     """
     try:
-        b = get_base(table_name)
+        b = get_base(base_name)
         b.delete_row(table_name, row_id)
         return f"Row {row_id} deleted successfully."
     except Exception as e:
         return f"Error deleting row: {str(e)}"
 
 @mcp.tool()
-def get_base_info(table_name: str = None) -> str:
+def get_base_info(base_name: str = None) -> str:
     """
     Get metadata about the current base (tables, columns, etc).
     
     Args:
-        table_name: Optional table name to help identify which base to connect to if using multi-token config.
+        base_name: Optional name of the base (from config) to connect to.
     """
     try:
-        b = get_base(table_name)
+        b = get_base(base_name)
         metadata = b.get_metadata()
         return str(metadata)
     except Exception as e:
         return f"Error getting base info: {str(e)}"
 
 @mcp.tool()
-def run_sql(query: str, table_name_hint: str = None) -> str:
+def run_sql(query: str, base_name: str = None) -> str:
     """
     Execute a SQL query against the SeaTable base.
     
     Args:
         query: The SQL query string.
-        table_name_hint: Optional table name to help identify which base to connect to.
+        base_name: Optional name of the base (from config) to connect to.
     """
     try:
-        b = get_base(table_name_hint)
+        b = get_base(base_name)
         results = b.query(query)
         return str(results)
     except Exception as e:
         return f"Error executing SQL: {str(e)}"
 
 @mcp.tool()
-def list_columns(table_name: str, view_name: str = None) -> str:
+def list_columns(table_name: str, view_name: str = None, base_name: str = None) -> str:
     """
     List all columns in a table.
     
     Args:
         table_name: The name of the table.
         view_name: Optional view name.
+        base_name: Optional name of the base (from config) to look up the API token.
     """
     try:
-        b = get_base(table_name)
+        b = get_base(base_name)
         columns = b.list_columns(table_name, view_name=view_name)
         return str(columns)
     except Exception as e:
@@ -193,7 +200,7 @@ def list_columns(table_name: str, view_name: str = None) -> str:
 from seatable_api.constants import ColumnTypes
 
 @mcp.tool()
-def insert_column(table_name: str, column_name: str, column_type: str, data: dict = None) -> str:
+def insert_column(table_name: str, column_name: str, column_type: str, data: dict = None, base_name: str = None) -> str:
     """
     Insert a new column into a table.
     
@@ -202,9 +209,10 @@ def insert_column(table_name: str, column_name: str, column_type: str, data: dic
         column_name: The name of the new column.
         column_type: The type of the column (e.g., 'text', 'number', 'date', 'single-select').
         data: Optional dictionary with additional column options.
+        base_name: Optional name of the base (from config) to look up the API token.
     """
     try:
-        b = get_base(table_name)
+        b = get_base(base_name)
         
         # Map string type to ColumnTypes enum
         type_map = {
@@ -239,23 +247,24 @@ def insert_column(table_name: str, column_name: str, column_type: str, data: dic
         return f"Error inserting column: {str(e)}"
 
 @mcp.tool()
-def delete_column(table_name: str, column_name: str) -> str:
+def delete_column(table_name: str, column_name: str, base_name: str = None) -> str:
     """
     Delete a column from a table.
     
     Args:
         table_name: The name of the table.
         column_name: The name of the column to delete.
+        base_name: Optional name of the base (from config) to look up the API token.
     """
     try:
-        b = get_base(table_name)
+        b = get_base(base_name)
         b.delete_column(table_name, column_name)
         return f"Column '{column_name}' deleted successfully."
     except Exception as e:
         return f"Error deleting column: {str(e)}"
 
 @mcp.tool()
-def add_select_options(table_name: str, column_name: str, options: list) -> str:
+def add_select_options(table_name: str, column_name: str, options: list, base_name: str = None) -> str:
     """
     Add options to a single or multiple select column.
     
@@ -263,9 +272,10 @@ def add_select_options(table_name: str, column_name: str, options: list) -> str:
         table_name: The name of the table.
         column_name: The name of the column.
         options: A list of options to add (strings).
+        base_name: Optional name of the base (from config) to look up the API token.
     """
     try:
-        b = get_base(table_name)
+        b = get_base(base_name)
         
         # Convert simple string options to the dict format required by SeaTable API
         formatted_options = []
@@ -285,22 +295,23 @@ def add_select_options(table_name: str, column_name: str, options: list) -> str:
         return f"Error adding options: {str(e)}"
 
 @mcp.tool()
-def list_views(table_name: str) -> str:
+def list_views(table_name: str, base_name: str = None) -> str:
     """
     List all views in a table.
     
     Args:
         table_name: The name of the table.
+        base_name: Optional name of the base (from config) to look up the API token.
     """
     try:
-        b = get_base(table_name)
+        b = get_base(base_name)
         views = b.list_views(table_name)
         return str(views)
     except Exception as e:
         return f"Error listing views: {str(e)}"
 
 @mcp.tool()
-def create_view(table_name: str, view_name: str, view_type: str = 'table') -> str:
+def create_view(table_name: str, view_name: str, view_type: str = 'table', base_name: str = None) -> str:
     """
     Create a new view in a table.
     
@@ -308,9 +319,10 @@ def create_view(table_name: str, view_name: str, view_type: str = 'table') -> st
         table_name: The name of the table.
         view_name: The name of the new view.
         view_type: The type of view (default 'table').
+        base_name: Optional name of the base (from config) to look up the API token.
     """
     try:
-        b = get_base(table_name)
+        b = get_base(base_name)
         # seatable-api v2.x add_view does not support view_type, defaults to 'table'
         b.add_view(table_name, view_name)
         return f"View '{view_name}' created successfully."
@@ -318,62 +330,66 @@ def create_view(table_name: str, view_name: str, view_type: str = 'table') -> st
         return f"Error creating view: {str(e)}"
 
 @mcp.tool()
-def delete_view(table_name: str, view_name: str) -> str:
+def delete_view(table_name: str, view_name: str, base_name: str = None) -> str:
     """
     Delete a view from a table.
     
     Args:
         table_name: The name of the table.
         view_name: The name of the view to delete.
+        base_name: Optional name of the base (from config) to look up the API token.
     """
     try:
-        b = get_base(table_name)
+        b = get_base(base_name)
         b.delete_view(table_name, view_name)
         return f"View '{view_name}' deleted successfully."
     except Exception as e:
         return f"Error deleting view: {str(e)}"
 
 @mcp.tool()
-def create_table(table_name: str) -> str:
+def create_table(table_name: str, base_name: str = None) -> str:
     """
     Create a new table.
     
     Args:
         table_name: The name of the new table.
+        base_name: Optional name of the base (from config) to look up the API token.
     """
     try:
-        b = get_base(table_name)
+        b = get_base(base_name)
         b.add_table(table_name)
         return f"Table '{table_name}' created successfully."
     except Exception as e:
         return f"Error creating table: {str(e)}"
 
 @mcp.tool()
-def rename_table(table_name: str, new_table_name: str) -> str:
+def rename_table(table_name: str, new_table_name: str, base_name: str = None) -> str:
     """
     Rename a table.
     
     Args:
         table_name: The current name of the table.
         new_table_name: The new name for the table.
+        base_name: Optional name of the base (from config) to look up the API token.
     """
     try:
-        b = get_base(table_name)
+        b = get_base(base_name)
         b.rename_table(table_name, new_table_name)
         return f"Table '{table_name}' renamed to '{new_table_name}'."
     except Exception as e:
         return f"Error renaming table: {str(e)}"
 
 @mcp.tool()
-def delete_table(table_name: str) -> str:
+def delete_table(table_name: str, base_name: str = None) -> str:
     """
     Delete a table.
     
     Args:
         table_name: The name of the table to delete.
+        base_name: Optional name of the base (from config) to look up the API token.
     """
     try:
-        b = get_base(table_name)
+        b = get_base(base_name)
         b.delete_table(table_name)
         return f"Table '{table_name}' deleted successfully."
     except Exception as e:
